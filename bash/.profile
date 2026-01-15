@@ -27,6 +27,17 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     unset _uid
 fi
 
+# Headless環境の補助: DBus未設定なら起動、Keyringデーモンを起動
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-launch >/dev/null 2>&1; then
+    eval "$(dbus-launch --sh-syntax)"
+fi
+if [ -z "$GNOME_KEYRING_CONTROL" ] && [ -x "$HOME/.local/bin/start-gnome-keyring" ]; then
+    eval "$("$HOME/.local/bin/start-gnome-keyring")"
+fi
+if [ -x "$HOME/.local/bin/coderabbit-token-sync" ]; then
+  "$HOME/.local/bin/coderabbit-token-sync" >/dev/null 2>&1 || true
+fi
+
 # ------------------------------------------
 # 2. Bash specific
 # ------------------------------------------
