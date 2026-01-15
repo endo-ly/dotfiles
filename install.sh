@@ -35,9 +35,10 @@ install_base_packages() {
         curl wget git unzip tar jq
         build-essential
         libsecret-1-dev
-        gnome-keyring libsecret-1-0 libsecret-tools dbus-user-session
+        gnome-keyring libsecret-1-0 libsecret-tools dbus-user-session dbus-x11
         stow
         python3-pip python3-venv
+        tmux
     )
     
     sudo apt install -y "${packages[@]}"
@@ -59,6 +60,13 @@ install_modern_tools() {
         sudo apt install -y bat
         mkdir -p ~/.local/bin
         ln -sf /usr/bin/batcat ~/.local/bin/bat
+    fi
+
+    # fd (findの代替)
+    if ! exists fd; then
+        sudo apt install -y fd-find
+        mkdir -p ~/.local/bin
+        ln -sf $(which fdfind) ~/.local/bin/fd
     fi
 
     # eza (lsの代替)
@@ -156,6 +164,7 @@ install_node_env() {
         "@anthropic-ai/claude-code"
         "@openai/codex"
         "@google/gemini-cli"
+        "opencode-ai"
     )
 
     if [ ${#npm_packages[@]} -gt 0 ]; then
@@ -176,6 +185,13 @@ install_binaries() {
         echo "Installing CodeRabbit..."
         curl -fsSL https://cli.coderabbit.ai/install.sh | sh
     fi
+
+    # Bun
+    if ! exists bun; then
+        echo "Installing Bun..."
+        export BUN_INSTALL="$HOME/.bun"
+        curl -fsSL https://bun.sh/install | bash
+    fi
 }
 
 # ------------------------------------------
@@ -188,7 +204,7 @@ apply_dotfiles() {
     cd "$(dirname "$0")" || return
 
     # 管理対象のディレクトリリスト
-    local targets=(bash git vscode agents)
+    local targets=(bash git vscode agents tmux)
 
     for target in "${targets[@]}"; do
         if [ -d "$target" ]; then
@@ -272,7 +288,86 @@ configure_pam_keyring() {
             # 所有権の修正
             chown -R "$target_user" "$keyring_dir"
         fi
+
+        # デフォルトKeyring設定
+        local default_file="$keyring_dir/default"
+        if [ ! -f "$default_file" ]; then
+            echo "Setting default keyring to 'login'"
+            echo "login" > "$default_file"
+            chmod 600 "$default_file"
+            chown "$target_user" "$default_file"
+        fi
     fi
+}
+
+# ------------------------------------------
+# 9. Headless向け Keyring 補助
+# ------------------------------------------
+setup_headless_keyring() {
+    log "Headless向けKeyring補助設定"
+
+    # GUIセッションなら不要
+    if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then
+        echo "GUIセッションを検出したためスキップします。"
+        return
+    fi
+
+    local target_user="${SUDO_USER:-$USER}"
+    local target_home
+    if command -v getent >/dev/null; then
+        target_home="$(getent passwd "$target_user" | cut -d: -f6)"
+    else
+        target_home="$HOME"
+    fi
+
+    if [ -z "$target_home" ]; then
+        echo "Failed to resolve home directory for $target_user. Skipping."
+        return
+    fi
+
+    local helper_dir="$target_home/.local/bin"
+    mkdir -p "$helper_dir"
+
+    if [ -d "$(dirname "$0")/scripts" ]; then
+        cp "$(dirname "$0")/scripts/start-gnome-keyring.sh" "$helper_dir/start-gnome-keyring"
+        cp "$(dirname "$0")/scripts/unlock-gnome-keyring.sh" "$helper_dir/unlock-gnome-keyring"
+        cp "$(dirname "$0")/scripts/coderabbit-token-sync.sh" "$helper_dir/coderabbit-token-sync"
+        chmod 700 "$helper_dir/start-gnome-keyring" \
+            "$helper_dir/unlock-gnome-keyring" \
+            "$helper_dir/coderabbit-token-sync"
+        chown "$target_user" "$helper_dir/start-gnome-keyring" \
+            "$helper_dir/unlock-gnome-keyring" \
+            "$helper_dir/coderabbit-token-sync"
+        echo "Installed helpers to $helper_dir"
+    else
+        echo "scripts/ directory not found. Skipping helper install."
+    fi
+}
+
+# ------------------------------------------
+# 10. AI Agents Global Rules
+# ------------------------------------------
+setup_agent_rules() {
+    log "AIエージェント用グローバルルールの設定"
+
+    local agent_source="$HOME/dotfiles/agents/AGENTS.md"
+
+    # 1. Claude Code (~/.claude/CLAUDE.md)
+    log "Setting up for Claude Code..."
+    mkdir -p "$HOME/.claude"
+    ln -sf "$agent_source" "$HOME/.claude/CLAUDE.md"
+
+    # 2. Gemini CLI & Antigravity (~/.gemini/GEMINI.md)
+    log "Setting up for Gemini CLI & Antigravity..."
+    mkdir -p "$HOME/.gemini"
+    ln -sf "$agent_source" "$HOME/.gemini/GEMINI.md"
+
+    # 3. OpenAI Codex (~/.codex/AGENTS.md)
+    log "Setting up for OpenAI Codex..."
+    mkdir -p "$HOME/.codex"
+    ln -sf "$agent_source" "$HOME/.codex/AGENTS.md"
+    
+    log "Global Agent Rules have been linked from $agent_source"
 }
 
 # ==========================================
@@ -287,6 +382,8 @@ install_node_env
 install_binaries
 apply_dotfiles
 configure_pam_keyring
+setup_headless_keyring
+setup_agent_rules
 
 log "✨ 全てのセットアップが完了しました。"
 log "シェルを再起動するか、'source ~/.bashrc' を実行してください。"
