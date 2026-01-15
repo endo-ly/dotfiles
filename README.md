@@ -5,24 +5,27 @@
 
 ## 🚀 はじめに
 
-このリポジトリには、Ubuntu/Debianベースのシステム（WSL2含む）向けの自動セットアップスクリプトが含まれています。
+このリポジトリには、Ubuntu/Debian ベースのシステム（WSL2 含む）向けの自動セットアップスクリプトが含まれています。
 
 ### 含まれるツール群
-- **Shell**: Bash
-- **Languages**: Python (uv), Node.js (nvm)
-- **Modern CLI**: ripgrep, bat, eza, zoxide, fzf
-- **AI Tools**: Claude Code, Codex, Gemini CLI, CodeRabbit
-- **Others**: Git, GitHub CLI
+
+- **Shell**: Bash, tmux
+- **Languages**: Python (uv), Node.js (nvm), Bun
+- **Modern CLI**: ripgrep, bat, eza, zoxide, fzf, fd
+- **AI Tools**: Claude Code, Codex, Gemini CLI, CodeRabbit, OpenCode
+- **Others**: Git, GitHub CLI, GnuPG/Gnome-keyring (for secrets)
 
 ## 🛠 インストール方法
 
 1. リポジトリをクローンします：
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/dotfiles
    cd ~/dotfiles
    ```
 
 2. インストールスクリプトを実行します：
+
    ```bash
    chmod +x install.sh
    ./install.sh
@@ -35,10 +38,11 @@
 
 ## 📂 ディレクトリ構成
 
-- `bash/`: Bashの設定 (`.bashrc`, `.bash_aliases` など)
-- `git/`: Gitの設定 (`.gitconfig`, `.gitignore_global`)
+- `bash/`: Bash の設定 (`.bashrc`, `.bash_aliases`, `.profile`)
+- `git/`: Git の設定 (`.gitconfig`, `.gitignore_global`)
+- `tmux/`: tmux の設定 (`.tmux.conf`)
 - `vscode/`: VS Code の設定
-- `agents/`: AIエージェント用の命令・ルールファイル集
+- `agents/`: AI エージェント用の命令・ルールファイル集
 - `scripts/`: 自作のユーティリティスクリプト
 
 ## 🌲 ディレクトリ構成
@@ -52,10 +56,17 @@
 │   └── AGENTS.md       # 環境サマリー + 共通ルール (Master)
 ├── bash/
 │   ├── .bash_aliases
-│   └── .bashrc
+│   ├── .bashrc
+│   └── .profile
 ├── git/
 │   ├── .gitconfig
 │   └── .gitignore_global
+├── scripts/
+│   ├── coderabbit-token-sync.sh
+│   ├── start-gnome-keyring.sh
+│   └── unlock-gnome-keyring.sh
+├── tmux/
+│   └── .tmux.conf
 └── vscode/
     └── .config/
         └── Code/
@@ -71,3 +82,35 @@
 # 例: gitの設定のみを適用
 stow git
 ```
+
+## 🤖 AI エージェント用グローバルルール
+
+`agents/AGENTS.md` は、様々な AI エージェント（Claude, Gemini, Codex 等）が共通して参照するルールファイルです。
+`install.sh` を実行すると、以下の場所にシンボリックリンクが作成されます：
+
+- `~/.claude/CLAUDE.md`
+- `~/.gemini/GEMINI.md`
+- `~/.codex/AGENTS.md`
+
+## 🤖 CodeRabbit (Headless) の永続ログイン
+
+GUI なし環境では `login` キーリングが作れないことがあり、`session` コレクションが使われます。
+その場合は再起動でトークンが消えるため、**トークンをファイルに保存して自動投入**する構成にしています。
+
+### 仕組み
+
+- トークン保存先: `~/.config/coderabbit/token` (パーミッション 600)
+- ログイン後に `coderabbit-token-sync` がトークンを保存
+- 起動時に `.profile` から `coderabbit-token-sync` がトークンを keyring に投入
+
+### 初回ログインの流れ
+
+```bash
+eval "$(~/.local/bin/start-gnome-keyring)"
+coderabbit auth login
+~/.local/bin/coderabbit-token-sync
+```
+
+### 注意
+
+この方式はトークンを平文で保持します。root-only で運用する前提です。
