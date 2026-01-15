@@ -1,10 +1,27 @@
-# General Rules for AI Agents
+# AI Agent Toolkit & Environment Guide
 
-## Available Environment & Tools (Summary)
-- **Python**: `uv` を優先使用（`uv run`, `uv add`）。
-- **Node.js**: `nvm` 管理（LTS使用）。
-- **Search**: `rg` (ripgrep) を使用。
-- **File List**: `eza` (lsの代替) を使用。
-- **Navigation**: `zoxide` (zコマンド) を使用。
-- **Modern Cat**: `bat` (batcat) を使用。
-- **AI Tools**: `claude` (Claude Code), `gemini` (Gemini CLI), `codex` (Codex CLI), `coderabbit` (CodeRabbit CLI)。
+This guide lists the preferred modern tools available in this environment for AI agents (Claude, Gemini, etc.).
+Please prioritize using these tools over legacy commands for efficiency and performance.
+
+## Preferred Modern Tools (Rust/Go based)
+
+| Category | Preferred Tool | Legacy | Description                              |
+| :------- | :------------- | :----- | :--------------------------------------- |
+| Grep | `rg`       | `grep` | Fast search, respects .gitignore.        |
+| List | `eza`      | `ls`   | Better formatting & icons.               |
+| Cat  | `bat`      | `cat`  | Syntax highlighting.                     |
+| Find | `fd`       | `find` | Fast file finding, user-friendly syntax. |
+| Cd   | `z`        | `cd`   | Jump to directories (zoxide).            |
+| JSON | `jq`       | -      | JSON processor.                          |
+| Git  | `gh`       | `git`  | GitHub CLI for PRs & issues.             |
+
+## Package Managers
+
+- Python: Use `uv` (Fast pip alternative).
+- Node.js: Managed by `nvm` (LTS).
+
+## Agent Best Practices
+
+1. Exploration: Use `eza --tree --level=2` to understand project structure.
+2. Search: Use `rg` to find code. It's much faster than `grep`.
+3. Reading: Use `bat` for reading code files.
