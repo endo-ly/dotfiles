@@ -351,11 +351,19 @@ setup_agent_rules() {
     log "AIエージェント用グローバルルールの設定"
 
     local agent_source="$HOME/dotfiles/agents/AGENTS.md"
+    local claude_skills_linker="$HOME/dotfiles/scripts/link-claude-skills.sh"
 
     # 1. Claude Code (~/.claude/CLAUDE.md)
     log "Setting up for Claude Code..."
     mkdir -p "$HOME/.claude"
     ln -sf "$agent_source" "$HOME/.claude/CLAUDE.md"
+
+    # Claude Code skills (~/.claude/skills/<skill-name>)
+    if [ -f "$claude_skills_linker" ]; then
+        bash "$claude_skills_linker"
+    else
+        echo "Skipping Claude skills linking ($claude_skills_linker not found)"
+    fi
 
     # 2. Gemini CLI & Antigravity (~/.gemini/GEMINI.md)
     log "Setting up for Gemini CLI & Antigravity..."

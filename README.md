@@ -89,8 +89,12 @@ stow git
 `install.sh` を実行すると、以下の場所にシンボリックリンクが作成されます：
 
 - `~/.claude/CLAUDE.md`
+- `~/.claude/skills/*` -> `~/dotfiles/agents/skills/*`
 - `~/.gemini/GEMINI.md`
 - `~/.codex/AGENTS.md`
+
+Claude Code 用の Skill は `agents/skills/<skill-name>/SKILL.md` という構成でこのリポジトリに置いておくと、`install.sh` が `~/.claude/skills/` に個別のシンボリックリンクを作成します。
+Skill だけ再リンクしたい場合は `scripts/link-claude-skills.sh` を単体で実行できます。
 
 ## 🤖 CodeRabbit (Headless) の永続ログイン
 
